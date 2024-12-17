@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hangman Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #D7FFF1;
+            color: #285943;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            margin: 20px;
+            font-size: 36px;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #hangman {
+            border: 2px solid #285943;
+            background-color: #AAFCB8;
+        }
+
+        .word-display {
+            font-size: 24px;
+            letter-spacing: 5px;
+        }
+
+        .keyboard-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            gap: 10px;
+            width: 90%;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+        .key {
+            background-color: #8CD790;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 16px;
+            text-transform: uppercase;
+        }
+
+        .key:hover {
+            background-color: #77AF9C;
+        }
+
+        .key:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .restart-container {
+            margin-top: 20px;
+        }
+
+        .restart-btn {
+            background-color: #285943;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .restart-btn:hover {
+            background-color: #77AF9C;
+        }
+
+        .game-message {
+            font-size: 24px;
+            font-weight: bold;
+            color: #285943;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Hangman Game</h1>
+
+        <!-- Word Display -->
+        <div class="word-display">
+            <p id="word-display">_ _ _ _ _</p>
+        </div>
+
+        <!-- Hangman Canvas -->
+        <canvas id="hangman" width="200" height="300"></canvas>
+
+        <!-- Virtual Keyboard -->
+        <div id="keyboard" class="keyboard-container"></div>
+
+        <div class="game-message">
+            <p id="message"></p>
+        </div>
+        
+        <!-- Restart Button -->
+        <div class="restart-container">
+            <button class="restart-btn" onclick="startGame()">Restart Game</button>
+        </div>
+
+        
+    </div>
+
+    <script>
+        const words = ["javascript", "hangman", "developer", "coding", "browser", "elephant", "firefly", "earth", "curtain"];
+        let selectedWord, guessedLetters, wrongGuesses, maxAttempts;
+
+        const wordDisplay = document.getElementById("word-display");
+        const hangmanCanvas = document.getElementById("hangman");
+        const keyboard = document.getElementById("keyboard");
+        const messageDisplay = document.getElementById("message");
+        const context = hangmanCanvas.getContext("2d");
+
+        // Start Game
+        function startGame() {
+            selectedWord = words[Math.floor(Math.random() * words.length)];
+            guessedLetters = [];
+            wrongGuesses = 0;
+            maxAttempts = 10;
+
+            messageDisplay.textContent = "";
+            initializeWordDisplay();
+            initializeKeyboard();
+            clearCanvas();
+        }
+
+        // Initialize Word Display
+        function initializeWordDisplay() {
+            wordDisplay.textContent = selectedWord
+                .split("")
+                .map((letter) => (guessedLetters.includes(letter) ? letter : "_"))
+                .join(" ");
+        }
+
+        // Initialize Virtual Keyboard
+        function initializeKeyboard() {
+            keyboard.innerHTML = "";
+            for (let i = 65; i <= 90; i++) {
+                const key = document.createElement("button");
+                key.textContent = String.fromCharCode(i);
+                key.classList.add("key");
+                key.onclick = () => handleGuess(key.textContent.toLowerCase());
+                keyboard.appendChild(key);
+            }
+        }
+
+        // Handle Letter Guess
+        function handleGuess(letter) {
+            if (guessedLetters.includes(letter)) return;
+
+            if (selectedWord.includes(letter)) {
+                guessedLetters.push(letter);
+                initializeWordDisplay();
+                if (selectedWord.split("").every((l) => guessedLetters.includes(l))) {
+                    endGame(true);
+                }
+            } else {
+                wrongGuesses++;
+                drawHangman(wrongGuesses);
+                if (wrongGuesses >= maxAttempts) {
+                    endGame(false);
+                }
+            }
+
+            disableKey(letter);
+        }
+
+        // Disable Used Key
+        function disableKey(letter) {
+            const keys = Array.from(keyboard.children);
+            keys.find((key) => key.textContent.toLowerCase() === letter).disabled = true;
+        }
+
+        // End Game
+        function endGame(won) {
+            messageDisplay.textContent = won ? "You Won!" : `You Lost! The word was ${selectedWord}`;
+            Array.from(keyboard.children).forEach((key) => (key.disabled = true));
+        }
+
+        // Draw Hangman
+        // Draw Hangman with a gallows
+function drawHangman(stage) {
+    context.lineWidth = 2;
+    context.strokeStyle = "#285943";
+
+    const parts = [
+        // 1. Base of the gallows
+        () => {
+            context.beginPath();
+            context.moveTo(50, 280);
+            context.lineTo(150, 280);
+            context.stroke();
+        },
+        // 2. Vertical pole
+        () => {
+            context.beginPath();
+            context.moveTo(100, 280);
+            context.lineTo(100, 50);
+            context.stroke();
+        },
+        // 3. Top horizontal pole
+        () => {
+            context.beginPath();
+            context.moveTo(100, 50);
+            context.lineTo(150, 50);
+            context.stroke();
+        },
+        // 4. Rope
+        () => {
+            context.beginPath();
+            context.moveTo(150, 50);
+            context.lineTo(150, 70);
+            context.stroke();
+        },
+        // 5. Head
+        () => {
+            context.beginPath();
+            context.arc(150, 90, 20, 0, Math.PI * 2);
+            context.stroke();
+        },
+        // 6. Body
+        () => {
+            context.beginPath();
+            context.moveTo(150, 110);
+            context.lineTo(150, 180);
+            context.stroke();
+        },
+        // 7. Left arm
+        () => {
+            context.beginPath();
+            context.moveTo(150, 130);
+            context.lineTo(130, 160);
+            context.stroke();
+        },
+        // 8. Right arm
+        () => {
+            context.beginPath();
+            context.moveTo(150, 130);
+            context.lineTo(170, 160);
+            context.stroke();
+        },
+        // 9. Left leg
+        () => {
+            context.beginPath();
+            context.moveTo(150, 180);
+            context.lineTo(130, 220);
+            context.stroke();
+        },
+        // 10. Right leg
+        () => {
+            context.beginPath();
+            context.moveTo(150, 180);
+            context.lineTo(170, 220);
+            context.stroke();
+        },
+    ];
+
+    parts[stage - 1]();
+}
+
+
+        // Clear Hangman Canvas
+        function clearCanvas() {
+            context.clearRect(0, 0, hangmanCanvas.width, hangmanCanvas.height);
+        }
+
+        // Start the game on load
+        window.onload = startGame;
+    </script>
+</body>
+</html>
